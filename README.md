@@ -4,6 +4,6 @@
 
 Требуется: При нажатии клавиши "мыши" должны отображаться расходящиеся круги случайно выбранного цвета, спецэффекты привествуются :)
 
-Используем инструментарий [nannou]([GitHub - nannou-org/nannou: A Creative Coding Framework for Rust.](https://github.com/nannou-org/nannou))
+Используем инструментарий [**nannou**](https://github.com/nannou-org/nannou)
 
 https://nannou.cc/
