@@ -1,9 +1,13 @@
 use nannou::prelude::*;
+use rand::Rng;
 
-#[derive(Copy, Clone)]
+static AMOUNT: i16 = 5;
+
 struct Ripple {
     center: Point2,
-    radius: f32
+    copy_color: Vec<rgb::Srgb<u8>>,
+    radius: f32,
+    copies: i16
 }
 
 struct Model {
@@ -35,19 +39,24 @@ fn event(app: &App, model: &mut Model, event: Event) {
         model.ripples.push(
             Ripple {
             center: app.mouse.position(),
-            radius: 5.
+            copy_color: vec![WHITE],
+            radius: 10.,
+            copies: 1
         });
     }
 
     match event {
         Event::Update(_) => {
-            let mut ripples = vec![];
             for ripple in model.ripples.iter_mut() {
                 ripple.grow();
-                if ripple.radius < 80. { ripples.push(*ripple)}
+                if ripple.copies < AMOUNT && ripple.radius as i16 > ripple.copies * 7  {
+                    ripple.copies += 1;
+                    ripple.copy_color.push(vec![NAVAJOWHITE, LIGHTGOLDENRODYELLOW, ANTIQUEWHITE, BLANCHEDALMOND]
+                        [rand::thread_rng().gen_range(0..4)])
+                }
             }
 
-            model.ripples = ripples;
+            model.ripples.retain(|x| x.radius < 200.)
         }
         _ => {}
     }
@@ -59,12 +68,14 @@ fn view(app: &App, model: &Model, frame: Frame) {
     draw.background().color(BLUE);
 
     for ripple in model.ripples.iter() {
-        draw.ellipse()
+        for i in 0..ripple.copies {
+            draw.ellipse()
             .xy(ripple.center)
-            .w_h(ripple.radius, ripple.radius)
+            .w_h(ripple.radius - i as f32 * 7., ripple.radius - i as f32 * 7.)
             .no_fill()
-            .stroke(WHITE)
+            .stroke(ripple.copy_color[i as usize])
             .stroke_weight(3.0);
+        }
     }
     
     draw.to_frame(app, &frame).unwrap();
