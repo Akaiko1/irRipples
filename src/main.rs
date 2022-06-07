@@ -1,11 +1,19 @@
 use nannou::prelude::*;
 
-// struct Ripple {
-//
-// }
+#[derive(Copy, Clone)]
+struct Ripple {
+    center: Point2,
+    radius: f32
+}
 
 struct Model {
-    ripples: Vec<Point2>
+    ripples: Vec<Ripple>
+}
+
+impl Ripple {
+    fn grow(&mut self) {
+        self.radius += 1.;
+    }
 }
 
 fn main() {
@@ -24,20 +32,40 @@ fn model(_app: &App) -> Model {
 fn event(app: &App, model: &mut Model, event: Event) {
     if let Event::WindowEvent{ id: _id, simple: Some(MousePressed(_)) } = event
     {
-        model.ripples.push( app.mouse.position());
+        model.ripples.push(
+            Ripple {
+            center: app.mouse.position(),
+            radius: 5.
+        });
     }
+
+    match event {
+        Event::Update(_) => {
+            let mut ripples = vec![];
+            for ripple in model.ripples.iter_mut() {
+                ripple.grow();
+                if ripple.radius < 80. { ripples.push(*ripple)}
+            }
+
+            model.ripples = ripples;
+        }
+        _ => {}
+    }
+
 }
 
 fn view(app: &App, model: &Model, frame: Frame) {
     let draw = app.draw();
+    draw.background().color(BLUE);
 
-    for circle in model.ripples.iter() {
+    for ripple in model.ripples.iter() {
         draw.ellipse()
-            .xy(*circle)
+            .xy(ripple.center)
+            .w_h(ripple.radius, ripple.radius)
             .no_fill()
-            .stroke(SALMON)
+            .stroke(WHITE)
             .stroke_weight(3.0);
     }
-
+    
     draw.to_frame(app, &frame).unwrap();
 }
