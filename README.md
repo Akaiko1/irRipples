@@ -1,9 +1,9 @@
 #### irRipples
 
-На данный момент: Скомпилированный вариант должен отрисовать на чёрном фоне розовый круг при нажатии любой клавиши "мыши"
+**Currently**: Being compiled opens single window with blue background, mouse clicks causes "ripples" of random color radiating from the click location
 
-Требуется: При нажатии клавиши "мыши" должны отображаться расходящиеся круги случайно выбранного цвета, спецэффекты привествуются :)
+**Required**: Pressing the "mouse" button should display divergent circles of randomly chosen color, special effects are welcome :)
 
-Используем инструментарий [**nannou**](https://github.com/nannou-org/nannou)
+Develop with [**nannou**](https://github.com/nannou-org/nannou)
 
 https://nannou.cc/
