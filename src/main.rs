@@ -3,6 +3,7 @@ use rand::Rng;
 
 static AMOUNT: i16 = 5;
 
+#[derive(Clone)]
 struct Ripple {
     center: Point2,
     copy_color: Vec<rgb::Srgb<u8>>,
@@ -15,9 +16,22 @@ struct Model {
 }
 
 impl Ripple {
-    fn grow(&mut self) {
+    fn grow(&mut self) -> &mut Self {
         self.radius += 1.;
+        self
     }
+
+    fn copy(&mut self) {
+        if self.copies < AMOUNT && self.radius as i16 > self.copies * 7  {
+            self.copies += 1;
+            self.copy_color.push(get_color())
+        }
+    }
+}
+
+fn get_color() -> rgb::Srgb<u8> {
+    vec![NAVAJOWHITE, LIGHTGOLDENRODYELLOW, ANTIQUEWHITE, BLANCHEDALMOND, WHITE]
+                [rand::thread_rng().gen_range(0..5)]
 }
 
 fn main() {
@@ -34,29 +48,23 @@ fn model(_app: &App) -> Model {
 }
 
 fn event(app: &App, model: &mut Model, event: Event) {
-    if let Event::WindowEvent{ id: _id, simple: Some(MousePressed(_)) } = event
-    {
-        model.ripples.push(
-            Ripple {
-            center: app.mouse.position(),
-            copy_color: vec![WHITE],
-            radius: 10.,
-            copies: 1
-        });
-    }
 
     match event {
         Event::Update(_) => {
             for ripple in model.ripples.iter_mut() {
-                ripple.grow();
-                if ripple.copies < AMOUNT && ripple.radius as i16 > ripple.copies * 7  {
-                    ripple.copies += 1;
-                    ripple.copy_color.push(vec![NAVAJOWHITE, LIGHTGOLDENRODYELLOW, ANTIQUEWHITE, BLANCHEDALMOND]
-                        [rand::thread_rng().gen_range(0..4)])
-                }
+                ripple.grow().copy();
             }
 
             model.ripples.retain(|x| x.radius < 200.)
+        }
+
+        Event::WindowEvent{id: _id, simple: Some(MousePressed(_))} => {
+            model.ripples.push(Ripple {
+                center: app.mouse.position(),
+                copy_color: vec![get_color()],
+                radius: 10.,
+                copies: 1
+            });
         }
         _ => {}
     }
