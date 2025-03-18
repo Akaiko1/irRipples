@@ -15,12 +15,13 @@ const COLORS: [rgb::Srgb<u8>; 8] = [
 ];
 
 // Water effect settings
-const WATER_DETAIL_LEVELS: usize = 1;  // How many octaves of noise
-const WATER_ANIMATION_SPEED: f32 = 1.0;
+const WATER_DETAIL_LEVELS: usize = 4;  // How many octaves of noise
+const WATER_ANIMATION_SPEED: f32 = 0.15;
 
 // Generate a random color from the palette
 pub fn random_color() -> rgb::Srgb<u8> {
-    COLORS[rand::thread_rng().gen_range(0..COLORS.len())]
+    let index = rand::thread_rng().gen_range(0, COLORS.len());
+    COLORS[index]
 }
 
 // Linear interpolation between two colors
@@ -37,7 +38,7 @@ pub fn draw_water_background(draw: &Draw, app: &App, noise: noise::Perlin, time:
     let win = app.window_rect();
     let resolution = 3; // Draw every Nth row for performance
     
-    // Define colors here instead of as constants
+    // Define colors
     let water_surface_color = rgb(0.0, 0.3, 0.6);
     let water_deep_color = rgb(0.0, 0.05, 0.2);
 
@@ -77,8 +78,8 @@ pub fn draw_water_background(draw: &Draw, app: &App, noise: noise::Perlin, time:
     let mut rng = rand::thread_rng();
     
     for _ in 0..speck_count {
-        let x = rng.gen_range(win.left()..win.right());
-        let y = rng.gen_range(win.bottom()..win.top());
+        let x = rng.gen_range(win.left(), win.right());
+        let y = rng.gen_range(win.bottom(), win.top());
         
         // Use noise to determine visibility of speck (makes them flicker)
         let noise_val = noise.get([
@@ -88,8 +89,8 @@ pub fn draw_water_background(draw: &Draw, app: &App, noise: noise::Perlin, time:
         ]) as f32;
         
         if noise_val > 0.7 {
-            let size = rng.gen_range(1.0..3.0);
-            let brightness = rng.gen_range(0.7..1.0);
+            let size = rng.gen_range(1.0, 3.0);
+            let brightness = rng.gen_range(0.7, 1.0);
             
             draw.ellipse()
                 .xy(pt2(x, y))
