@@ -213,6 +213,12 @@ fn event(app: &App, model: &mut Model, event: Event) {
                     return;
                 }
                 
+                // Check if user clicked on lava/water toggle button
+                if model.menu.is_in_lava_button(mouse_pos) {
+                    model.menu.lava_mode = !model.menu.lava_mode;
+                    return;
+                }
+                
                 // If not clicking on UI, start creating ripples
                 model.mouse_down = true;
                 model.ripples.push(Ripple::new(mouse_pos, app.time));
@@ -234,9 +240,13 @@ fn view(app: &App, model: &Model, frame: Frame) {
     // Draw background
     draw.background().color(BLACK);
     
-    // Draw water background if enabled
+    // Draw water or lava background if enabled
     if model.menu.background_enabled {
-        effects::draw_water_background(&draw, app, model.noise, model.time);
+        if model.menu.lava_mode {
+            effects::draw_lava_background(&draw, app, model.noise, model.time);
+        } else {
+            effects::draw_water_background(&draw, app, model.noise, model.time);
+        }
     }
 
     // Draw all ripples

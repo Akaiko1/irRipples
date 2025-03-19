@@ -10,6 +10,8 @@ pub struct Menu {
     pub fade_button_rect: Rect,
     pub background_enabled: bool, 
     pub background_button_rect: Rect,
+    pub lava_mode: bool,
+    pub lava_button_rect: Rect,
 }
 
 impl Menu {
@@ -50,6 +52,13 @@ impl Menu {
             button_height,
         );
         
+        let lava_button_rect = Rect::from_x_y_w_h(
+            window_rect.left() + padding + button_width/2.0,
+            background_button_rect.bottom() - button_spacing - button_height/2.0,
+            button_width,
+            button_height,
+        );
+        
         Menu {
             visible: false,
             toggle_button_rect,
@@ -59,6 +68,8 @@ impl Menu {
             fade_button_rect,
             background_enabled,  // Use provided parameter
             background_button_rect,
+            lava_mode: false,    // Default to water mode
+            lava_button_rect,
         }
     }
     
@@ -80,6 +91,11 @@ impl Menu {
     // Check if a point is inside the background button
     pub fn is_in_background_button(&self, point: Point2) -> bool {
         self.visible && self.background_button_rect.contains(point)
+    }
+    
+    // Check if a point is inside the lava button
+    pub fn is_in_lava_button(&self, point: Point2) -> bool {
+        self.visible && self.lava_button_rect.contains(point)
     }
     
     // Draw the menu
@@ -117,9 +133,9 @@ impl Menu {
             let padding = 5.0;
             let panel_rect = Rect::from_x_y_w_h(
                 self.toggle_button_rect.x(),
-                (self.toggle_button_rect.bottom() + self.background_button_rect.bottom()) / 2.0,
+                (self.toggle_button_rect.bottom() + self.lava_button_rect.bottom()) / 2.0,
                 self.wobble_button_rect.w() + padding * 2.0,
-                self.toggle_button_rect.bottom() - self.background_button_rect.bottom() + padding * 2.0,
+                self.toggle_button_rect.bottom() - self.lava_button_rect.bottom() + padding * 2.0,
             );
             
             draw.rect()
@@ -183,6 +199,26 @@ impl Menu {
             let bg_text = if self.background_enabled { "Water BG: ON" } else { "Water BG: OFF" };
             draw.text(bg_text)
                 .xy(self.background_button_rect.xy())
+                .font_size(14)
+                .color(WHITE)
+                .align_text_middle_y();
+                
+            // Lava toggle button
+            let lava_color = if self.lava_mode { 
+                rgba(0.9, 0.3, 0.0, 0.9)  // Orange-red for lava
+            } else { 
+                rgba(0.0, 0.4, 0.8, 0.9)  // Blue for water
+            };
+            
+            draw.rect()
+                .xy(self.lava_button_rect.xy())
+                .wh(self.lava_button_rect.wh())
+                .color(lava_color);
+                
+            // Lava mode text
+            let mode_text = if self.lava_mode { "Mode: LAVA" } else { "Mode: WATER" };
+            draw.text(mode_text)
+                .xy(self.lava_button_rect.xy())
                 .font_size(14)
                 .color(WHITE)
                 .align_text_middle_y();
