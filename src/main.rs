@@ -2,6 +2,9 @@ use nannou::prelude::*;
 use noise;
 
 mod effects;
+mod ui;
+
+use ui::Menu;
 
 // Configuration constants
 const AMOUNT: i16 = 5;                  // Maximum number of rings per ripple
@@ -12,11 +15,12 @@ const COLOR_CHANGE_FACTOR: i16 = 7;     // Spacing between rings
 const STROKE_WEIGHT: f32 = 3.0;         // Line thickness for ripples
 const FADE_DISTANCE: f32 = 50.0;        // Distance over which ripples fade out
 
-// Special effect configuration
-const ENABLE_WOBBLE: bool = true;       // Enable wobble effect on rings
+// Special effect configuration - now these are controlled from the UI
+const DEFAULT_WOBBLE: bool = true;       // Default wobble effect on rings
 const WOBBLE_AMOUNT: f32 = 0.8;         // How much rings wobble
 const WOBBLE_SPEED: f32 = 2.0;          // Speed of wobble animation
-const ENABLE_FADE: bool = true;         // Enable opacity fade as ripples grow
+const DEFAULT_FADE: bool = true;         // Default opacity fade as ripples grow
+const DEFAULT_BACKGROUND: bool = true;   // Default water background
 
 #[derive(Clone)]
 struct Ripple {
@@ -32,6 +36,7 @@ struct Model {
     time: f32,                          // Application time
     mouse_down: bool,                   // Tracks if mouse is currently pressed
     last_ripple_time: f32,              // Time when last ripple was created
+    menu: Menu,                         // UI menu
 }
 
 impl Ripple {
@@ -61,8 +66,8 @@ impl Ripple {
     }
     
     // Calculate opacity based on ripple age
-    fn opacity(&self, max_radius: f32) -> f32 {
-        if ENABLE_FADE {
+    fn opacity(&self, max_radius: f32, fade_enabled: bool) -> f32 {
+        if fade_enabled {
             // Fade out as the ripple approaches maximum size
             let fade_start = max_radius - FADE_DISTANCE;
             if self.radius > fade_start {
@@ -73,12 +78,12 @@ impl Ripple {
     }
     
     // Draw the ripple
-    fn draw(&self, draw: &Draw, _app: &App, time: f32) {
-        let opacity = self.opacity(MAX_RADIUS);
+    fn draw(&self, draw: &Draw, _app: &App, time: f32, wobble_enabled: bool, fade_enabled: bool) {
+        let opacity = self.opacity(MAX_RADIUS, fade_enabled);
         
         for i in 0..self.copies {
             let ring_radius = self.radius - i as f32 * COLOR_CHANGE_FACTOR as f32;
-            let  color = self.color_sequence[i as usize];
+            let color = self.color_sequence[i as usize];
             
             // Apply opacity
             let color_with_alpha = rgba(
@@ -88,7 +93,7 @@ impl Ripple {
                 opacity
             );
             
-            if ENABLE_WOBBLE {
+            if wobble_enabled {
                 // Create a wobbly effect by drawing points around the circle
                 let points = (0..=360).step_by(5).map(|deg| {
                     let radian = deg_to_rad(deg as f32);
@@ -128,13 +133,21 @@ fn main() {
         .run();
 }
 
-fn model(_app: &App) -> Model {
+fn model(app: &App) -> Model {
+    let window_rect = app.window_rect();
+    
     Model { 
         ripples: vec![],
         noise: noise::Perlin::new(),
         time: 0.0,
         mouse_down: false,
         last_ripple_time: 0.0,
+        menu: Menu::new(
+            window_rect,
+            DEFAULT_WOBBLE,
+            DEFAULT_FADE,
+            DEFAULT_BACKGROUND
+        ),  // Initialize the menu with default constants
     }
 }
 
@@ -149,11 +162,21 @@ fn update(app: &App, model: &mut Model, _update: Update) {
     // Remove expired ripples
     model.ripples.retain(|ripple| !ripple.is_expired());
     
-    // Create new ripples while mouse is held down
+    // Create new ripples while mouse is held down (only if not clicking on UI)
     if model.mouse_down {
         let current_time = app.time;
+        let mouse_pos = app.mouse.position();
+        
+        // Don't create ripples if mouse is over the menu when it's visible
+        let mouse_over_menu = model.menu.visible && (
+            model.menu.is_in_toggle_button(mouse_pos) ||
+            model.menu.is_in_wobble_button(mouse_pos) ||
+            model.menu.is_in_fade_button(mouse_pos) ||
+            model.menu.is_in_background_button(mouse_pos)
+        );
+        
         // Create ripples with some spacing in time (every 0.1 seconds)
-        if current_time - model.last_ripple_time > 0.1 {
+        if !mouse_over_menu && current_time - model.last_ripple_time > 0.1 {
             model.ripples.push(Ripple::new(app.mouse.position(), current_time));
             model.last_ripple_time = current_time;
         }
@@ -164,8 +187,35 @@ fn event(app: &App, model: &mut Model, event: Event) {
     match event {
         Event::WindowEvent { simple: Some(MousePressed(button)), .. } => {
             if button == MouseButton::Left {
+                let mouse_pos = app.mouse.position();
+                
+                // Check if user clicked on menu toggle button
+                if model.menu.is_in_toggle_button(mouse_pos) {
+                    model.menu.visible = !model.menu.visible;
+                    return;
+                }
+                
+                // Check if user clicked on wobble toggle button
+                if model.menu.is_in_wobble_button(mouse_pos) {
+                    model.menu.wobble_enabled = !model.menu.wobble_enabled;
+                    return;
+                }
+                
+                // Check if user clicked on fade toggle button
+                if model.menu.is_in_fade_button(mouse_pos) {
+                    model.menu.fade_enabled = !model.menu.fade_enabled;
+                    return;
+                }
+                
+                // Check if user clicked on background toggle button
+                if model.menu.is_in_background_button(mouse_pos) {
+                    model.menu.background_enabled = !model.menu.background_enabled;
+                    return;
+                }
+                
+                // If not clicking on UI, start creating ripples
                 model.mouse_down = true;
-                model.ripples.push(Ripple::new(app.mouse.position(), app.time));
+                model.ripples.push(Ripple::new(mouse_pos, app.time));
                 model.last_ripple_time = app.time;
             }
         },
@@ -183,12 +233,19 @@ fn view(app: &App, model: &Model, frame: Frame) {
     
     // Draw background
     draw.background().color(BLACK);
-    effects::draw_water_background(&draw, app, model.noise, model.time);
+    
+    // Draw water background if enabled
+    if model.menu.background_enabled {
+        effects::draw_water_background(&draw, app, model.noise, model.time);
+    }
 
     // Draw all ripples
     for ripple in &model.ripples {
-        ripple.draw(&draw, app, model.time);
+        ripple.draw(&draw, app, model.time, model.menu.wobble_enabled, model.menu.fade_enabled);
     }
+    
+    // Draw the menu
+    model.menu.draw(&draw);
 
     // Render everything
     draw.to_frame(app, &frame).unwrap();
