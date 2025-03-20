@@ -22,6 +22,11 @@ const WATER_ANIMATION_SPEED: f32 = 0.15;
 const LAVA_DETAIL_LEVELS: usize = 3;  // Fewer octaves for chunkier look
 const LAVA_ANIMATION_SPEED: f32 = 0.05; // Slower movement for lava
 
+// Radial background settings
+const RADIAL_ANIMATION_SPEED: f32 = 0.1;
+const RADIAL_COLOR_SPEED: f32 = 0.2;
+const RADIAL_RAYS: usize = 300;
+
 // Generate a random color from the palette
 pub fn random_color() -> rgb::Srgb<u8> {
     let index = rand::thread_rng().gen_range(0, COLORS.len());
@@ -193,6 +198,80 @@ pub fn draw_lava_background(draw: &Draw, app: &App, noise: noise::Perlin, time: 
                 .xy(pt2(x, y))
                 .w_h(size, size)
                 .color(rgba(1.0, 1.0, 0.3, 0.9)); // Bright yellow spark
+        }
+    }
+}
+
+pub fn draw_radial_background(draw: &Draw, app: &App, noise: noise::Perlin, time: f32) {
+    let win = app.window_rect();
+    let center = pt2(0.0, 0.0); // Center of the window
+    
+    // Draw rays emanating from center
+    for i in 0..RADIAL_RAYS {
+        let angle = (i as f32 / RADIAL_RAYS as f32) * TAU;
+        let ray_length = win.w().max(win.h());
+        
+        // Use noise to create dynamic colors
+        let noise_val1 = noise.get([
+            angle as f64 * 0.5,
+            time as f64 * RADIAL_COLOR_SPEED as f64,
+            0.0
+        ]) as f32;
+        
+        let noise_val2 = noise.get([
+            angle as f64 * 0.5,
+            time as f64 * RADIAL_COLOR_SPEED as f64,
+            1.0
+        ]) as f32;
+        
+        // Create vibrant colors that shift over time
+        let r = 0.5 + 0.5 * (noise_val1 * 3.0).sin();
+        let g = 0.5 + 0.5 * (noise_val2 * 2.5 + 1.0).sin();
+        let b = 0.5 + 0.5 * (noise_val1 * 2.0 + 2.0).sin();
+        
+        // Make the center brighter
+        let center_brightness = 0.7 + 0.3 * (time * RADIAL_ANIMATION_SPEED + angle).sin();
+        
+        // Instead of using gradient lines, we'll draw multiple segments with decreasing opacity
+        let segments = 15;
+        for j in 0..segments {
+            let t_start = j as f32 / segments as f32;
+            let t_end = (j + 1) as f32 / segments as f32;
+            
+            let start_x = center.x + angle.cos() * ray_length * t_start;
+            let start_y = center.y + angle.sin() * ray_length * t_start;
+            
+            let end_x = center.x + angle.cos() * ray_length * t_end;
+            let end_y = center.y + angle.sin() * ray_length * t_end;
+            
+            // Calculate opacity based on distance from center
+            let opacity = if j == 0 {
+                0.9 // Brightest at center
+            } else {
+                0.7 * (1.0 - t_start) // Fade out toward edges
+            };
+            
+            // Adjust color based on segment position
+            let segment_color = if j == 0 {
+                // Brighter at center
+                rgba(
+                    (r * center_brightness).min(1.0),
+                    (g * center_brightness).min(1.0),
+                    (b * center_brightness).min(1.0),
+                    opacity
+                )
+            } else {
+                rgba(r, g, b, opacity)
+            };
+            
+            // Line weight varies with angle and time for organic feel
+            let weight = 3.0 + 2.0 * (time * 0.5 + angle * 0.2).sin();
+            
+            draw.line()
+                .start(pt2(start_x, start_y))
+                .end(pt2(end_x, end_y))
+                .weight(weight)
+                .color(segment_color);
         }
     }
 }

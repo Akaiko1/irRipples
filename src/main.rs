@@ -4,7 +4,7 @@ use noise;
 mod effects;
 mod ui;
 
-use ui::Menu;
+use ui::{BackgroundType, Menu};
 
 // Configuration constants
 const AMOUNT: i16 = 5;                  // Maximum number of rings per ripple
@@ -20,7 +20,6 @@ const DEFAULT_WOBBLE: bool = true;       // Default wobble effect on rings
 const WOBBLE_AMOUNT: f32 = 0.8;         // How much rings wobble
 const WOBBLE_SPEED: f32 = 2.0;          // Speed of wobble animation
 const DEFAULT_FADE: bool = true;         // Default opacity fade as ripples grow
-const DEFAULT_BACKGROUND: bool = true;   // Default water background
 
 #[derive(Clone)]
 struct Ripple {
@@ -145,8 +144,7 @@ fn model(app: &App) -> Model {
         menu: Menu::new(
             window_rect,
             DEFAULT_WOBBLE,
-            DEFAULT_FADE,
-            DEFAULT_BACKGROUND
+            DEFAULT_FADE
         ),  // Initialize the menu with default constants
     }
 }
@@ -172,7 +170,7 @@ fn update(app: &App, model: &mut Model, _update: Update) {
             model.menu.is_in_toggle_button(mouse_pos) ||
             model.menu.is_in_wobble_button(mouse_pos) ||
             model.menu.is_in_fade_button(mouse_pos) ||
-            model.menu.is_in_background_button(mouse_pos)
+            model.menu.is_in_bg_type_button(mouse_pos)
         );
         
         // Create ripples with some spacing in time (every 0.1 seconds)
@@ -206,16 +204,15 @@ fn event(app: &App, model: &mut Model, event: Event) {
                     model.menu.fade_enabled = !model.menu.fade_enabled;
                     return;
                 }
-                
-                // Check if user clicked on background toggle button
-                if model.menu.is_in_background_button(mouse_pos) {
-                    model.menu.background_enabled = !model.menu.background_enabled;
-                    return;
-                }
-                
-                // Check if user clicked on lava/water toggle button
-                if model.menu.is_in_lava_button(mouse_pos) {
-                    model.menu.lava_mode = !model.menu.lava_mode;
+
+                if model.menu.is_in_bg_type_button(mouse_pos) {
+                    // Cycle through background types
+                    model.menu.background_type = match model.menu.background_type {
+                        BackgroundType::None => BackgroundType::Water,
+                        BackgroundType::Water => BackgroundType::Lava,
+                        BackgroundType::Lava => BackgroundType::Radial,
+                        BackgroundType::Radial => BackgroundType::None,
+                    };
                     return;
                 }
                 
@@ -239,14 +236,12 @@ fn view(app: &App, model: &Model, frame: Frame) {
     
     // Draw background
     draw.background().color(BLACK);
-    
-    // Draw water or lava background if enabled
-    if model.menu.background_enabled {
-        if model.menu.lava_mode {
-            effects::draw_lava_background(&draw, app, model.noise, model.time);
-        } else {
-            effects::draw_water_background(&draw, app, model.noise, model.time);
-        }
+
+    match model.menu.background_type {
+        BackgroundType::Water => effects::draw_water_background(&draw, app, model.noise, model.time),
+        BackgroundType::Lava => effects::draw_lava_background(&draw, app, model.noise, model.time),
+        BackgroundType::Radial => effects::draw_radial_background(&draw, app, model.noise, model.time),
+        BackgroundType::None => {}, // No background
     }
 
     // Draw all ripples
