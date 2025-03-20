@@ -8,14 +8,20 @@ pub struct Menu {
     pub fade_enabled: bool,
     pub wobble_button_rect: Rect,
     pub fade_button_rect: Rect,
-    pub background_enabled: bool, 
-    pub background_button_rect: Rect,
-    pub lava_mode: bool,
-    pub lava_button_rect: Rect,
+    pub background_type: BackgroundType,
+    pub bg_type_button_rect: Rect,
+}
+
+#[derive(PartialEq, Debug, Clone, Copy)]
+pub enum BackgroundType {
+    None,
+    Water,
+    Lava,
+    Radial,
 }
 
 impl Menu {
-    pub fn new(window_rect: Rect, wobble_enabled: bool, fade_enabled: bool, background_enabled: bool) -> Self {
+    pub fn new(window_rect: Rect, wobble_enabled: bool, fade_enabled: bool) -> Self {
         // Position in top left corner with some padding
         let padding = 10.0;
         let button_size = 30.0;
@@ -44,17 +50,10 @@ impl Menu {
             button_width,
             button_height,
         );
-        
-        let background_button_rect = Rect::from_x_y_w_h(
+
+        let bg_type_button_rect = Rect::from_x_y_w_h(
             window_rect.left() + padding + button_width/2.0,
             fade_button_rect.bottom() - button_spacing - button_height/2.0,
-            button_width,
-            button_height,
-        );
-        
-        let lava_button_rect = Rect::from_x_y_w_h(
-            window_rect.left() + padding + button_width/2.0,
-            background_button_rect.bottom() - button_spacing - button_height/2.0,
             button_width,
             button_height,
         );
@@ -66,10 +65,8 @@ impl Menu {
             fade_enabled,        // Use provided parameter
             wobble_button_rect,
             fade_button_rect,
-            background_enabled,  // Use provided parameter
-            background_button_rect,
-            lava_mode: false,    // Default to water mode
-            lava_button_rect,
+            background_type: BackgroundType::Water,
+            bg_type_button_rect,
         }
     }
     
@@ -82,20 +79,14 @@ impl Menu {
     pub fn is_in_wobble_button(&self, point: Point2) -> bool {
         self.visible && self.wobble_button_rect.contains(point)
     }
+
+    pub fn is_in_bg_type_button(&self, point: Point2) -> bool {
+        self.visible && self.bg_type_button_rect.contains(point)
+    }
     
     // Check if a point is inside the fade button
     pub fn is_in_fade_button(&self, point: Point2) -> bool {
         self.visible && self.fade_button_rect.contains(point)
-    }
-    
-    // Check if a point is inside the background button
-    pub fn is_in_background_button(&self, point: Point2) -> bool {
-        self.visible && self.background_button_rect.contains(point)
-    }
-    
-    // Check if a point is inside the lava button
-    pub fn is_in_lava_button(&self, point: Point2) -> bool {
-        self.visible && self.lava_button_rect.contains(point)
     }
     
     // Draw the menu
@@ -133,9 +124,9 @@ impl Menu {
             let padding = 5.0;
             let panel_rect = Rect::from_x_y_w_h(
                 self.toggle_button_rect.x(),
-                (self.toggle_button_rect.bottom() + self.lava_button_rect.bottom()) / 2.0,
+                (self.toggle_button_rect.bottom() + self.bg_type_button_rect.bottom()) / 2.0,
                 self.wobble_button_rect.w() + padding * 2.0,
-                self.toggle_button_rect.bottom() - self.lava_button_rect.bottom() + padding * 2.0,
+                self.toggle_button_rect.bottom() - self.bg_type_button_rect.bottom() + padding * 2.0,
             );
             
             draw.rect()
@@ -182,43 +173,31 @@ impl Menu {
                 .font_size(14)
                 .color(WHITE)
                 .align_text_middle_y();
-                
-            // Background toggle button
-            let bg_color = if self.background_enabled { 
-                rgba(0.2, 0.8, 0.3, 0.9) 
-            } else { 
-                rgba(0.8, 0.2, 0.2, 0.9) 
+                 
+
+            // Background type button
+            let bg_color = match self.background_type {
+                BackgroundType::None => rgba(0.8, 0.2, 0.2, 0.9),
+                BackgroundType::Water => rgba(0.0, 0.4, 0.8, 0.9),
+                BackgroundType::Lava => rgba(0.9, 0.3, 0.0, 0.9),
+                BackgroundType::Radial => rgba(0.8, 0.4, 0.8, 0.9),
             };
             
             draw.rect()
-                .xy(self.background_button_rect.xy())
-                .wh(self.background_button_rect.wh())
-                .color(bg_color);
+            .xy(self.bg_type_button_rect.xy())
+            .wh(self.bg_type_button_rect.wh())
+            .color(bg_color);
                 
-            // Background button text
-            let bg_text = if self.background_enabled { "Water BG: ON" } else { "Water BG: OFF" };
+            // Background type text
+            let bg_text = match self.background_type {
+                BackgroundType::None => "BG: OFF",
+                BackgroundType::Water => "BG: WATER",
+                BackgroundType::Lava => "BG: LAVA",
+                BackgroundType::Radial => "BG: RADIAL",
+            };
+            
             draw.text(bg_text)
-                .xy(self.background_button_rect.xy())
-                .font_size(14)
-                .color(WHITE)
-                .align_text_middle_y();
-                
-            // Lava toggle button
-            let lava_color = if self.lava_mode { 
-                rgba(0.9, 0.3, 0.0, 0.9)  // Orange-red for lava
-            } else { 
-                rgba(0.0, 0.4, 0.8, 0.9)  // Blue for water
-            };
-            
-            draw.rect()
-                .xy(self.lava_button_rect.xy())
-                .wh(self.lava_button_rect.wh())
-                .color(lava_color);
-                
-            // Lava mode text
-            let mode_text = if self.lava_mode { "Mode: LAVA" } else { "Mode: WATER" };
-            draw.text(mode_text)
-                .xy(self.lava_button_rect.xy())
+                .xy(self.bg_type_button_rect.xy())
                 .font_size(14)
                 .color(WHITE)
                 .align_text_middle_y();
