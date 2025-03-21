@@ -29,6 +29,9 @@ const RADIAL_RAYS: usize = 300;
 
 // Generate a random color from the palette
 pub fn random_color() -> rgb::Srgb<u8> {
+    #[cfg(target_os = "macos")]
+    let index = rand::thread_rng().gen_range(0..COLORS.len());
+    #[cfg(not(target_os = "macos"))]
     let index = rand::thread_rng().gen_range(0, COLORS.len());
     COLORS[index]
 }
@@ -87,7 +90,13 @@ pub fn draw_water_background(draw: &Draw, app: &App, noise: noise::Perlin, time:
     let mut rng = rand::thread_rng();
     
     for _ in 0..speck_count {
+        #[cfg(target_os = "macos")]
+        let x = rng.gen_range(win.left()..win.right());
+        #[cfg(not(target_os = "macos"))]
         let x = rng.gen_range(win.left(), win.right());
+        #[cfg(target_os = "macos")]
+        let y = rng.gen_range(win.bottom()..win.top());
+        #[cfg(not(target_os = "macos"))]
         let y = rng.gen_range(win.bottom(), win.top());
         
         // Use noise to determine visibility of speck (makes them flicker)
@@ -98,7 +107,13 @@ pub fn draw_water_background(draw: &Draw, app: &App, noise: noise::Perlin, time:
         ]) as f32;
         
         if noise_val > 0.7 {
+            #[cfg(target_os = "macos")]
+            let size = rng.gen_range(1.0..3.0);
+            #[cfg(not(target_os = "macos"))]
             let size = rng.gen_range(1.0, 3.0);
+            #[cfg(target_os = "macos")]
+            let brightness = rng.gen_range(0.7..1.0);
+            #[cfg(not(target_os = "macos"))]
             let brightness = rng.gen_range(0.7, 1.0);
             
             draw.ellipse()
@@ -154,7 +169,13 @@ pub fn draw_lava_background(draw: &Draw, app: &App, noise: noise::Perlin, time: 
     let mut rng = rand::thread_rng();
     
     for _ in 0..bubble_count {
+        #[cfg(target_os = "macos")]
+        let x = rng.gen_range(win.left()..win.right());
+        #[cfg(not(target_os = "macos"))]
         let x = rng.gen_range(win.left(), win.right());
+        #[cfg(target_os = "macos")]
+        let y = rng.gen_range(win.bottom()..win.top());
+        #[cfg(not(target_os = "macos"))]
         let y = rng.gen_range(win.bottom(), win.top());
         
         // Use noise to determine visibility (bubbling effect)
@@ -165,6 +186,9 @@ pub fn draw_lava_background(draw: &Draw, app: &App, noise: noise::Perlin, time: 
         ]) as f32;
         
         if noise_val > 0.65 {
+            #[cfg(target_os = "macos")]
+            let size = rng.gen_range(1.0..5.0);
+            #[cfg(not(target_os = "macos"))]
             let size = rng.gen_range(1.0, 5.0);
             
             // Brighter at the top (rising heat)
@@ -182,7 +206,13 @@ pub fn draw_lava_background(draw: &Draw, app: &App, noise: noise::Perlin, time: 
     // Add a few bright sparks
     let spark_count = 50;
     for _ in 0..spark_count {
+        #[cfg(target_os = "macos")]
+        let x = rng.gen_range(win.left()..win.right());
+        #[cfg(not(target_os = "macos"))]
         let x = rng.gen_range(win.left(), win.right());
+        #[cfg(target_os = "macos")]
+        let y = rng.gen_range(win.bottom()..win.top());
+        #[cfg(not(target_os = "macos"))]
         let y = rng.gen_range(win.bottom(), win.top());
         
         let noise_val = noise.get([
@@ -192,6 +222,9 @@ pub fn draw_lava_background(draw: &Draw, app: &App, noise: noise::Perlin, time: 
         ]) as f32;
         
         if noise_val > 0.8 {
+            #[cfg(target_os = "macos")]
+            let size = rng.gen_range(1.0..2.5);
+            #[cfg(not(target_os = "macos"))]
             let size = rng.gen_range(1.0, 2.5);
             
             draw.ellipse()

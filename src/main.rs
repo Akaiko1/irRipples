@@ -134,10 +134,15 @@ fn main() {
 
 fn model(app: &App) -> Model {
     let window_rect = app.window_rect();
+
+    #[cfg(target_os = "macos")]
+    let noise_gen = noise::Perlin::new(42);
+    #[cfg(not(target_os = "macos"))]
+    let noise_gen = noise::Perlin::new();
     
     Model { 
         ripples: vec![],
-        noise: noise::Perlin::new(),
+        noise: noise_gen,
         time: 0.0,
         mouse_down: false,
         last_ripple_time: 0.0,
